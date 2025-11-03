@@ -1,4 +1,5 @@
 defmodule ServerWithState do
+  # working with immutable state
   def start do
     spawn(fn ->
       # simulate creating a connection handler

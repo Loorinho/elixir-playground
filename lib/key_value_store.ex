@@ -19,15 +19,24 @@ defmodule KeyValueStore do
 
   # We can introduce helper functions inorder to make clients completely oblivious to the fact that the GenericServer abstraction was used. That way, the client will call these interface functions instead of calling the generic server directly
 
+  # The interface functions will run in the client process
+  # The callback functions will run in the server process
   def start do
     GenericServer.start(KeyValueStore)
   end
 
   def put(pid, key, value) do
-    GenericServer.call(pid, {:put, key, value})
+    # GenericServer.call(pid, {:put, key, value}) -> If we want to handle it syncronously
+    GenericServer.cast(pid, {:put, key, value})
   end
 
   def get(pid, key) do
     GenericServer.call(pid, {:get, key})
+  end
+
+  # To support asynchronous requests. We can inplement the put function. As a fire-and-forget coz client doesn't really expect back a response
+
+  def handle_cast({:put, key, value}, state) do
+    Map.put(state, key, value)
   end
 end

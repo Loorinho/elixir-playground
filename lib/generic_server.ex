@@ -17,9 +17,11 @@ defmodule GenericServer do
     # The Specific implementation (the callback_module) must handle the message and return the response and the new state
 
     receive do
-      # GenericServer process receives the request and invokes the callback to handle the nessage
-      {request, caller} ->
-        # the callback_module handles the message and returns both the response and the new state
+      # GenericServer process receives the requests and handles then depending on the message tag i.e :call or :cast
+
+      # Handles the :call message -> It is synchronous
+      {:call, request, caller} ->
+        # the callback_module handles the call request and returns both the response and the new state
         {response, new_state} =
           callback_module.handle_call(
             request,
@@ -31,12 +33,25 @@ defmodule GenericServer do
 
         # Loops with the new state
         loop(callback_module, new_state)
+
+      # Handles the :cast message -> It is assynchronous
+      {:cast, request} ->
+        new_state =
+          callback_module.handle_cast(
+            request,
+            current_state
+          )
+
+        # No response is sent back to the caller, so, the callback ablve only returns the new state
+        loop(callback_module, new_state)
     end
   end
 
+  # call is for synchronous requests
   def call(server_pid, request) do
     # sends the message to the server. Captured in the loop function
-    send(server_pid, {request, self()})
+    # :call tags the message as a call
+    send(server_pid, {:call, request, self()})
 
     # since the loop function sends a response, we must receive the response in here
     receive do
@@ -44,5 +59,12 @@ defmodule GenericServer do
         response
         # We wait for the response and return the response
     end
+  end
+
+  # call is for synchronous requests
+  def cast(server_pid, request) do
+    # sends the message to the server. Captured in the loop function
+    # :cast tags the message as a cast
+    send(server_pid, {:cast, request})
   end
 end

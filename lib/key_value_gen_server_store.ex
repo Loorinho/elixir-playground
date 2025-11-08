@@ -1,0 +1,50 @@
+defmodule KeyValueGenServerStore do
+  # this line injects several functions into the calling module during compilation
+  use GenServer
+
+  def init(_initial_arg) do
+    # The _initial_arg is usually the second argument when we call GenServer.start/2
+
+    # This is us sending a periodic cleanup of the server process state
+    # This erlang function periodically sends a message to te caller process
+    # :timer.send_interval(5000, :cleanup) <- When uncommented, you'll see the handle_info being invoked
+
+    # This is what the init function returns
+    {:ok, %{}}
+  end
+
+  def handle_info(:cleanup, state) do
+    # Since this message isn't a GenServer specific messsage, it's not treated as a cast or call. And so, the handle_info/2 callback is called by the GenServer giving me a chance to deal with the message
+    # This function will handle the plain :cleanup message
+    IO.puts("Performing cleanup...")
+    {:noreply, state}
+  end
+
+  def handle_cast({:put, key, value}, state) do
+    # First argument is the request and the second argument is the state
+    {:noreply, Map.put(state, key, value)}
+  end
+
+  def handle_call({:get, key}, _from, state) do
+    # _from contains information from the caller like the PID of the caller and the request ID used internally by the GenServer
+    {:reply, Map.get(state, key), state}
+  end
+
+  # We will then need interface functions to interact with our GenServerStore. There are inbuild functions in the GenServer module like
+  # GenServer.start/2 <- To start the gen server
+  # GenServer.cast/2 and GenServer.call/2 <- Both used to issue requests to the server
+
+  # Making our own interface functions
+
+  def start do
+    GenServer.start(KeyValueGenServerStore, nil)
+  end
+
+  def put(pid, key, value) do
+    GenServer.cast(pid, {:put, key, value})
+  end
+
+  def get(pid, key) do
+    GenServer.call(pid, {:get, key})
+  end
+end

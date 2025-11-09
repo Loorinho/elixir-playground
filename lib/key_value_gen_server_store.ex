@@ -2,6 +2,7 @@ defmodule KeyValueGenServerStore do
   # this line injects several functions into the calling module during compilation
   use GenServer
 
+  @impl GenServer
   def init(_initial_arg) do
     # The _initial_arg is usually the second argument when we call GenServer.start/2
 
@@ -13,6 +14,7 @@ defmodule KeyValueGenServerStore do
     {:ok, %{}}
   end
 
+  @impl GenServer
   def handle_info(:cleanup, state) do
     # Since this message isn't a GenServer specific messsage, it's not treated as a cast or call. And so, the handle_info/2 callback is called by the GenServer giving me a chance to deal with the message
     # This function will handle the plain :cleanup message
@@ -20,11 +22,14 @@ defmodule KeyValueGenServerStore do
     {:noreply, state}
   end
 
+  # Just good to put on all GenServer callbacks
+  @impl GenServer
   def handle_cast({:put, key, value}, state) do
     # First argument is the request and the second argument is the state
     {:noreply, Map.put(state, key, value)}
   end
 
+  @impl GenServer
   def handle_call({:get, key}, _from, state) do
     # _from contains information from the caller like the PID of the caller and the request ID used internally by the GenServer
     {:reply, Map.get(state, key), state}
@@ -37,14 +42,22 @@ defmodule KeyValueGenServerStore do
   # Making our own interface functions
 
   def start do
-    GenServer.start(KeyValueGenServerStore, nil)
+    # GenServer.start(KeyValueGenServerStore, nil) # initial implementation
+    # This line below registers the server process by name. That way, we don't have to always pass the PID in the put and get interface functions
+    GenServer.start(KeyValueGenServerStore, nil, name: KeyValueGenServerStore)
   end
 
-  def put(pid, key, value) do
-    GenServer.cast(pid, {:put, key, value})
+  # def put(pid, key, value) do
+  def put(key, value) do
+    # GenServer.cast(pid, {:put, key, value})
+    # Here below, we are sending the request to the registered process
+    GenServer.cast(KeyValueGenServerStore, {:put, key, value})
   end
 
-  def get(pid, key) do
-    GenServer.call(pid, {:get, key})
+  def get(key) do
+    # GenServer.call(pid, {:get, key})
+    GenServer.call(KeyValueGenServerStore, {:get, key})
   end
+
+  # Using the named process helps prevent the passing around the pid over and over and it also makes the client facing functions easy to use
 end

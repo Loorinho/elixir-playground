@@ -47,16 +47,17 @@ defmodule Todo.Server do
     GenServer.start(__MODULE__, nil, name: __MODULE__)
   end
 
-  # def put(pid, key, value) do
-  def put(todo) do
-    # GenServer.cast(pid, {:put, key, value})
+  def add_entry(pid, todo) do
+    # def add_entry(todo) do
+    GenServer.cast(pid, {:put, todo})
     # Here below, we are sending the request to the registered process
-    GenServer.cast(__MODULE__, {:put, todo})
+    # GenServer.cast(__MODULE__, {:put, todo})
   end
 
-  def get(key) do
-    # GenServer.call(pid, {:get, key})
-    GenServer.call(__MODULE__, {:get, key})
+  # def entries(key) do
+  def entries(pid, key) do
+    GenServer.call(pid, {:get, key})
+    # GenServer.call(__MODULE__, {:get, key})
   end
 
   # Using the named process helps prevent the passing around the pid over and over and it also makes the client facing functions easy to use

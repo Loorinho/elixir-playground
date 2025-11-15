@@ -42,6 +42,13 @@ defmodule Todo.Cache do
 
   # Example
   # > {:ok, cache} = Todo.Cache.start()
-  # > Todo.Cache.server_process(cache, "Loorinho's list")
+  # >loorinho_list = Todo.Cache.server_process(cache, "Loorinho's list")
   # > Todo.Cache.server_process(cache, "Loorinho's list") # This will return the same value as the line above it coz
+  # > alice_list = Todo.Cache.server_process(cache, "Alice's list")
+  # > Todo.Server.add_entry(loor_list,%Todo.List{title: "Going to church", date: ~D[2025-11-13]})
+  # > Todo.Server.add_entry(loor_list,%Todo.List{title: "Going to work", date: ~D[2025-11-13]})
+  # > Todo.Server.entries(loor_list, ~D[2025-11-13])
+  # > Todo.Server.add_entry(alice_list,%Todo.List{title: "Here we go", date: ~D[2025-11-13]})
+
+  # NB: Alice's list won't be affected by additions to Loorinho's list
 end

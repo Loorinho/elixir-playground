@@ -3,7 +3,7 @@ defmodule Todo.Server do
   use GenServer
 
   @impl GenServer
-  def init(_initial_arg) do
+  def init(list_name) do
     # The _initial_arg is usually the second argument when we call GenServer.start/2
 
     # This is us sending a periodic cleanup of the server process state
@@ -11,7 +11,7 @@ defmodule Todo.Server do
     # :timer.send_interval(5000, :cleanup) <- When uncommented, you'll see the handle_info being invoked
 
     # This is what the init function returns
-    {:ok, %Todo.List{}}
+    {:ok, {list_name, Todo.List.new()}}
   end
 
   @impl GenServer
@@ -23,10 +23,22 @@ defmodule Todo.Server do
   end
 
   # Just good to put on all GenServer callbacks
+  # @impl GenServer
+  # def handle_cast({:put, entry}, state) do
+  #   # First argument is the request and the second argument is the state
+  #   {:noreply, Todo.List.add_entry(state, entry)}
+  # end
+
   @impl GenServer
-  def handle_cast({:put, entry}, state) do
-    # First argument is the request and the second argument is the state
-    {:noreply, Todo.List.add_entry(state, entry)}
+  def handle_cast({:add_entry, new_entry}, {name, todo_list}) do
+    # Adds the item to the list
+    new_list = Todo.List.add_entry(todo_list, new_entry)
+
+    # Persists the new list to the db
+    Todo.Database.store(name, new_list)
+
+    # Returns a response
+    {:noreply, {name, new_entry}}
   end
 
   @impl GenServer
@@ -41,15 +53,16 @@ defmodule Todo.Server do
 
   # Making our own interface functions
 
-  def start do
+  def start(list_name) do
     # GenServer.start(KeyValueGenServerStore, nil) # initial implementation
     # This line below registers the server process by name. That way, we don't have to always pass the PID in the put and get interface functions
-    GenServer.start(__MODULE__, nil, name: __MODULE__)
+
+    GenServer.start(__MODULE__, list_name, name: __MODULE__)
   end
 
   def add_entry(pid, todo) do
     # def add_entry(todo) do
-    GenServer.cast(pid, {:put, todo})
+    GenServer.cast(pid, {:add_entry, todo})
     # Here below, we are sending the request to the registered process
     # GenServer.cast(__MODULE__, {:put, todo})
   end

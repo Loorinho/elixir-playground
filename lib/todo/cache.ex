@@ -20,23 +20,26 @@ defmodule Todo.Cache do
 
   @impl GenServer
   def init(_) do
+    # Starts the databse server
+    Todo.Database.start()
+    # Initializes the Cache
     {:ok, %{}}
   end
 
   # Call because we must return a result to the caller (a to-do server pid)
   @impl GenServer
-  def handle_call({:server_process, todo_list_name}, _from, state) do
-    case Map.fetch(state, todo_list_name) do
+  def handle_call({:server_process, todo_list_name}, _from, todo_list_servers) do
+    case Map.fetch(todo_list_servers, todo_list_name) do
       # If there is something for a given key, we return the value to the caller ofc leaving the state unchanged
       {:ok, todo_server} ->
-        {:reply, todo_server, state}
+        {:reply, todo_server, todo_list_servers}
 
       # Otherwise, we start a new process, return its pid and also insert an appropriate name-value pair in the process state
       :error ->
         # We start a new server
-        {:ok, new_server} = Todo.Server.start()
+        {:ok, new_server} = Todo.Server.start(todo_list_name)
         # And then add it to the map with that given key
-        {:reply, new_server, Map.put(state, todo_list_name, new_server)}
+        {:reply, new_server, Map.put(todo_list_servers, todo_list_name, new_server)}
     end
   end
 

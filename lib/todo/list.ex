@@ -1,8 +1,9 @@
 defmodule Todo.List do
-  defstruct [:date, :title]
+  # defstruct [:date, :title]
 
   def new do
-    %Todo.List{}
+    # %Todo.List{}
+    %{}
   end
 
   def add_entry(todo_list, entry) do

@@ -11,7 +11,28 @@ defmodule Todo.Server do
     # :timer.send_interval(5000, :cleanup) <- When uncommented, you'll see the handle_info being invoked
 
     # This is what the init function returns
-    {:ok, {list_name, Todo.List.new()}}
+    # {:ok, {list_name, Todo.List.new()}}
+
+    # kinda like Schedules the post-init continuation
+    {:ok, {list_name, nil}, {:continue, :init}}
+    # It will split the db initialization into two
+  end
+
+  # This callback is usually good to handle long initializations
+  # Imagine we want to initialize some data(on hitting the db) during process initialization. It might be a lengthy process. Thats why we split the initialization into two. That way, we don't block the Genserver.start given it only returns after initialization is done.
+  @impl GenServer
+  def handle_continue(:init, {list_name, nil}) do
+    # The callback receives the the arguments from the {:continue, args} tuple as well as the server state
+    # nil as the initial state coz we are going to override it anyways
+
+    todo_list = Todo.Database.get(list_name) || Todo.List.new()
+
+    IO.inspect(todo_list)
+
+    # above, try to fetch the data from the database, and we resort to the empty list if
+    # there’s nothing on disk given that list name
+
+    {:noreply, {list_name, todo_list}}
   end
 
   @impl GenServer

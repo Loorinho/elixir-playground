@@ -3,7 +3,7 @@ defmodule Todo.Server do
   use GenServer
 
   @impl GenServer
-  def init(list_name) do
+  def init(name) do
     # The _initial_arg is usually the second argument when we call GenServer.start/2
 
     # This is us sending a periodic cleanup of the server process state
@@ -14,25 +14,23 @@ defmodule Todo.Server do
     # {:ok, {list_name, Todo.List.new()}}
 
     # kinda like Schedules the post-init continuation
-    {:ok, {list_name, nil}, {:continue, :init}}
+    {:ok, {name, nil}, {:continue, :init}}
     # It will split the db initialization into two
   end
 
   # This callback is usually good to handle long initializations
   # Imagine we want to initialize some data(on hitting the db) during process initialization. It might be a lengthy process. Thats why we split the initialization into two. That way, we don't block the Genserver.start given it only returns after initialization is done.
   @impl GenServer
-  def handle_continue(:init, {list_name, nil}) do
-    # The callback receives the the arguments from the {:continue, args} tuple as well as the server state
+  def handle_continue(:init, {name, nil}) do
+    # The callback receives the arguments from the {:continue, args} tuple as well as the server state
     # nil as the initial state coz we are going to override it anyways
 
-    todo_list = Todo.Database.get(list_name) || Todo.List.new()
-
-    IO.inspect(todo_list)
+    todo_list = Todo.Database.get(name) || Todo.List.new()
 
     # above, try to fetch the data from the database, and we resort to the empty list if
     # there’s nothing on disk given that list name
 
-    {:noreply, {list_name, todo_list}}
+    {:noreply, {name, todo_list}}
   end
 
   @impl GenServer
@@ -59,13 +57,13 @@ defmodule Todo.Server do
     Todo.Database.store(name, new_list)
 
     # Returns a response
-    {:noreply, {name, new_entry}}
+    {:noreply, {name, new_list}}
   end
 
   @impl GenServer
-  def handle_call({:get, key}, _from, state) do
+  def handle_call({:entries, date}, _from, {name, todo_list}) do
     # _from contains information from the caller like the PID of the caller and the request ID used internally by the GenServer
-    {:reply, Todo.List.entries(state, key), state}
+    {:reply, Todo.List.entries(todo_list, date), {name, todo_list}}
   end
 
   # We will then need interface functions to interact with our GenServerStore. There are inbuild functions in the GenServer module like
@@ -74,23 +72,23 @@ defmodule Todo.Server do
 
   # Making our own interface functions
 
-  def start(list_name) do
+  def start(name) do
     # GenServer.start(KeyValueGenServerStore, nil) # initial implementation
     # This line below registers the server process by name. That way, we don't have to always pass the PID in the put and get interface functions
 
-    GenServer.start(__MODULE__, list_name, name: __MODULE__)
+    GenServer.start(Todo.Server, name)
   end
 
-  def add_entry(pid, todo) do
+  def add_entry(todo_server, new_entry) do
     # def add_entry(todo) do
-    GenServer.cast(pid, {:add_entry, todo})
+    GenServer.cast(todo_server, {:add_entry, new_entry})
     # Here below, we are sending the request to the registered process
     # GenServer.cast(__MODULE__, {:put, todo})
   end
 
   # def entries(key) do
-  def entries(pid, key) do
-    GenServer.call(pid, {:get, key})
+  def entries(todo_server, date) do
+    GenServer.call(todo_server, {:entries, date})
     # GenServer.call(__MODULE__, {:get, key})
   end
 

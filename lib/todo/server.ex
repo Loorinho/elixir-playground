@@ -13,6 +13,8 @@ defmodule Todo.Server do
     # This is what the init function returns
     # {:ok, {list_name, Todo.List.new()}}
 
+    IO.puts("Starting to-do server for #{name}.")
+
     # kinda like Schedules the post-init continuation
     {:ok, {name, nil}, {:continue, :init}}
     # It will split the db initialization into two

@@ -7,19 +7,25 @@ defmodule Todo.Cache do
   # Interface functions
 
   # Starts our cache process
-  def start do
-    GenServer.start(__MODULE__, nil)
+  def start_link(_) do
+    # start_link because we want it to be linked to the caller process
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   # Get the todo-list's pid given mane
-  def server_process(cache_pid, todo_list_name) do
-    GenServer.call(cache_pid, {:server_process, todo_list_name})
+  # def server_process(cache_pid, todo_list_name) do
+  def server_process(todo_list_name) do
+    # we now use the registered name of the cache instead of always using its pid
+    # GenServer.call(cache_pid, {:server_process, todo_list_name})
+    GenServer.call(__MODULE__, {:server_process, todo_list_name})
   end
 
   # Server
 
   @impl GenServer
   def init(_) do
+    IO.puts("Starting to-do cache")
+
     # Starts the databse server
     Todo.Database.start()
     # Initializes the Cache

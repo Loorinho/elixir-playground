@@ -5,7 +5,7 @@ defmodule Todo.Database do
 
   # interface functions for client to interact with
   def start do
-    GenServer.start(__MODULE__, nil, name: __MODULE__)
+    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 
   def store(key, data) do

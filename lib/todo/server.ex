@@ -78,7 +78,7 @@ defmodule Todo.Server do
     # GenServer.start(KeyValueGenServerStore, nil) # initial implementation
     # This line below registers the server process by name. That way, we don't have to always pass the PID in the put and get interface functions
 
-    GenServer.start(Todo.Server, name)
+    GenServer.start_link(Todo.Server, name)
   end
 
   def add_entry(todo_server, new_entry) do

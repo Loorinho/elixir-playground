@@ -27,7 +27,7 @@ defmodule Todo.Cache do
     IO.puts("Starting to-do cache")
 
     # Starts the databse server
-    Todo.Database.start()
+    # Todo.Database.start()
     # Initializes the Cache
     {:ok, %{}}
   end

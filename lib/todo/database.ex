@@ -4,7 +4,7 @@ defmodule Todo.Database do
   @db_folder "./persistance"
 
   # interface functions for client to interact with
-  def start do
+  def start_link(_) do
     GenServer.start_link(__MODULE__, nil, name: __MODULE__)
   end
 

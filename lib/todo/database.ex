@@ -1,11 +1,41 @@
 defmodule Todo.Database do
-  use GenServer
+  # use GenServer
   # module attribute -> Its the hardcoded value of my local database folder
   @db_folder "./persistance"
 
+  @poolSize 3
+
   # interface functions for client to interact with
-  def start_link(_) do
-    GenServer.start_link(__MODULE__, nil, name: __MODULE__)
+  def start_link do
+    IO.puts("Starting database server...")
+
+    # Creating the persistance folder if it doesnt exist
+    File.mkdir_p!(@db_folder)
+
+    children = Enum.map(1..@poolSize, &db_worker_spec/1)
+
+    # IO.inspect(children, label: "Db workers")
+
+    # Starting the db workers as children under the Database supervisor
+    Supervisor.start_link(children, strategy: :one_for_one)
+  end
+
+  defp db_worker_spec(worker_id) do
+    default_worker_spec = {Todo.DatabaseWorker, {@db_folder, worker_id}}
+
+    # Setting this id is important coz without it, we would end up having multiple children with the same id. Remember if no id is specified, the default is set to the name of the module
+    Supervisor.child_spec(default_worker_spec, id: worker_id)
+  end
+
+  def child_spec(_) do
+    # Since it is now our supervisor, we need to provide our own child specification with the type of SUpervisor since we are nolonger in the GenServer territory
+
+    %{
+      id: __MODULE__,
+      start: {__MODULE__, :start_link, []},
+      # Helps us indicate the type of the process which will be started. It can either be :supervisor or :worker -> :worker is the default
+      type: :supervisor
+    }
   end
 
   def store(key, data) do
@@ -22,65 +52,9 @@ defmodule Todo.Database do
     key
     |> choose_worker()
     |> Todo.DatabaseWorker.get(key)
-
-    # GenServer.call(__MODULE__, {:get, key})
-  end
-
-  # Server functions
-  @impl GenServer
-  def init(_) do
-    # added for polling
-
-    IO.puts("Starting database server")
-
-    # This line below tries to create the database folder if it doesn't exist already
-    File.mkdir_p!(@db_folder)
-    # {:ok, nil}
-
-    # initializing the three worker processes
-
-    {:ok, start_workers()}
   end
 
   defp choose_worker(key) do
-    GenServer.call(__MODULE__, {:choose_worker, key})
-  end
-
-  @impl GenServer
-  def handle_cast({:store, key, data}, state) do
-    key
-    |> file_name()
-    |> File.write!(:erlang.term_to_binary(data))
-
-    {:noreply, state}
-  end
-
-  @impl GenServer
-  def handle_call({:choose_worker, key}, _, workers) do
-    worker_key = :erlang.phash2(key, 3)
-    {:reply, Map.get(workers, worker_key), workers}
-  end
-
-  # def handle_call({:get, key}, _, state) do
-  #   data =
-  #     case File.read(file_name(key)) do
-  #       {:ok, contents} -> :erlang.binary_to_term(contents)
-  #       _ -> nil
-  #     end
-
-  #   {:reply, data, state}
-  # end
-
-  defp file_name(key) do
-    Path.join(@db_folder, to_string(key))
-  end
-
-  # creating three db worker processes
-  defp start_workers() do
-    for index <- 1..3, into: %{} do
-      # IO.puts("Starting database worker #{index}")
-      {:ok, pid} = Todo.DatabaseWorker.start(@db_folder)
-      {index - 1, pid}
-    end
+    :erlang.phash2(key, @poolSize) + 1
   end
 end
